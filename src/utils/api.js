@@ -44,26 +44,26 @@ export const api = {
 
   getStats: async () => apiCall('stats'),
 
-  // Callback actions — use API routes (server-side validation)
-  pickUp: (id, agent) => apiCall('callbacks/pickup', { id, agent }),
+  // Callback actions — single consolidated endpoint with action param
+  pickUp: (id, agent) => apiCall('callbacks', { action: 'pickup', id, agent }),
   complete: (id, notes, followUpRequired, followUpAt) =>
-    apiCall('callbacks/complete', { id, notes, followUpRequired, followUpAt }),
+    apiCall('callbacks', { action: 'complete', id, notes, followUpRequired, followUpAt }),
   scheduleFollowUp: (id, followUpAt, notes) =>
-    apiCall('callbacks/followup', { id, followUpAt, notes }),
-  forceRelease: (id, notes) => apiCall('callbacks/force-release', { id, notes }),
-  autoRelease: (id) => apiCall('callbacks/auto-release', { id }),
-  bulkForceRelease: (ids, notes) => apiCall('callbacks/bulk-force-release', { ids, notes }),
-  extendCallback: (id) => apiCall('callbacks/extend', { id }),
-  assignCallback: (id, agent) => apiCall('callbacks/assign', { id, agent }),
-  bulkAssign: (ids, agent) => apiCall('callbacks/bulk-assign', { ids, agent }),
-  unassignCallback: (id) => apiCall('callbacks/unassign', { id }),
-  reassignCallback: (id, agent) => apiCall('callbacks/reassign', { id, agent }),
-  clearOldCallbacks: (beforeDate) => apiCall('callbacks/clear-old', { beforeDate }),
+    apiCall('callbacks', { action: 'followup', id, followUpAt, notes }),
+  forceRelease: (id, notes) => apiCall('callbacks', { action: 'force-release', id, notes }),
+  autoRelease: (id) => apiCall('callbacks', { action: 'auto-release', id }),
+  bulkForceRelease: (ids, notes) => apiCall('callbacks', { action: 'bulk-force-release', ids, notes }),
+  extendCallback: (id) => apiCall('callbacks', { action: 'extend', id }),
+  assignCallback: (id, agent) => apiCall('callbacks', { action: 'assign', id, agent }),
+  bulkAssign: (ids, agent) => apiCall('callbacks', { action: 'bulk-assign', ids, agent }),
+  unassignCallback: (id) => apiCall('callbacks', { action: 'unassign', id }),
+  reassignCallback: (id, agent) => apiCall('callbacks', { action: 'reassign', id, agent }),
+  clearOldCallbacks: (beforeDate) => apiCall('callbacks', { action: 'clear-old', beforeDate }),
 
   // Webhook + manual
-  retriggerWebhook: (ticketId) => apiCall('webhook/retrigger', { ticketId }),
-  createManualCallback: (data) => apiCall('callbacks/create', data),
-  bulkCreateCallbacks: (data) => apiCall('callbacks/bulk-create', { callbacks: data }),
+  retriggerWebhook: (ticketId) => apiCall('webhook', { action: 'retrigger', ticketId }),
+  createManualCallback: (data) => apiCall('callbacks', { action: 'create', ...data }),
+  bulkCreateCallbacks: (data) => apiCall('callbacks', { action: 'bulk-create', callbacks: data }),
 
   // SLA config
   getSLAConfig: async () => {
@@ -77,22 +77,22 @@ export const api = {
     });
     return map;
   },
-  updateSLAConfig: (config) => apiCall('config/sla', config),
+  updateSLAConfig: (config) => apiCall('config', config),
 
   // User management
-  createUser: (user) => apiCall('users/create', user),
-  deleteUser: (email) => apiCall('users/delete', { email }),
-  resetUserPassword: (email, newPassword) => apiCall('users/reset-password', { email, newPassword }),
-  updateUserRole: (email, role) => apiCall('users/update-role', { email, role }),
-  bulkCreateUsers: (data) => apiCall('users/bulk-create', { users: data }),
+  createUser: (user) => apiCall('users', { action: 'create', ...user }),
+  deleteUser: (email) => apiCall('users', { action: 'delete', email }),
+  resetUserPassword: (email, newPassword) => apiCall('users', { action: 'reset-password', email, newPassword }),
+  updateUserRole: (email, role) => apiCall('users', { action: 'update-role', email, role }),
+  bulkCreateUsers: (data) => apiCall('users', { action: 'bulk-create', users: data }),
 
-  // Notifications
-  getNotificationConfig: () => apiCall('notifications/config'),
-  testSlackWebhook: () => apiCall('notifications/test-slack'),
-  testEmailAlerts: () => apiCall('notifications/test-email'),
-  setupPeriodicTrigger: () => apiCall('notifications/setup-trigger'),
-  removePeriodicTrigger: () => apiCall('notifications/remove-trigger'),
-  triggerSummaryNow: () => apiCall('notifications/trigger-summary'),
+  // Notifications — single consolidated endpoint with action param
+  getNotificationConfig: () => apiCall('notifications?action=config'),
+  testSlackWebhook: () => apiCall('notifications', { action: 'test-slack' }),
+  testEmailAlerts: () => apiCall('notifications', { action: 'test-email' }),
+  setupPeriodicTrigger: () => apiCall('notifications', { action: 'setup-trigger' }),
+  removePeriodicTrigger: () => apiCall('notifications', { action: 'remove-trigger' }),
+  triggerSummaryNow: () => apiCall('notifications', { action: 'trigger-summary' }),
 };
 
 // Map snake_case DB rows to camelCase frontend format

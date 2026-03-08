@@ -1,4 +1,4 @@
-import { db } from '../lib/db.js';
+import { db } from './lib/db.js';
 
 export default async function handler(req, res) {
   const { data, error } = await db.from('callback_stats').select('*').single();

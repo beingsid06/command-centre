@@ -683,7 +683,7 @@ The app can send automatic summaries via Slack and/or email.
 2. Click **Create Cronjob** (or **+ New**)
 3. Fill in:
    - **Title**: `Scapia Summary`
-   - **URL**: `https://YOUR-APP.vercel.app/api/notifications/trigger-summary` (replace with your actual Vercel URL)
+   - **URL**: `https://YOUR-APP.vercel.app/api/notifications` (replace with your actual Vercel URL)
 4. Under **Schedule**, set it to **Every 3 hours** (or whatever frequency you prefer)
 5. Under **Advanced** (or **Request Settings**), change the **Request Method** to **POST**
 6. Click **Create** (or **Save**)
