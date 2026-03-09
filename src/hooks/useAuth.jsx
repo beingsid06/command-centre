@@ -43,6 +43,7 @@ function getUserPassword(email) {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(getStoredSession);
   const [users, setUsers] = useState(getStoredUsers);
+  const [onlineAgents, setOnlineAgents] = useState([]);
 
   const isAdmin = currentUser?.role === 'Admin';
   const isSupervisor = currentUser?.role === 'Supervisor' || isAdmin;
@@ -79,6 +80,8 @@ export function AuthProvider({ children }) {
     const session = { name: user.name, email: user.email, role: user.role };
     setCurrentUser(session);
     try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch {}
+    // Send initial heartbeat on login
+    if (api.isLive()) api.heartbeat(user.email).catch(() => {});
     return { success: true };
   }, []);
 
@@ -86,6 +89,31 @@ export function AuthProvider({ children }) {
     setCurrentUser(null);
     try { localStorage.removeItem(SESSION_KEY); } catch {}
   }, []);
+
+  // Heartbeat: send every 60s while logged in
+  useEffect(() => {
+    if (!currentUser || !api.isLive()) return;
+    const iv = setInterval(() => {
+      api.heartbeat(currentUser.email).catch(() => {});
+    }, 60000);
+    return () => clearInterval(iv);
+  }, [currentUser]);
+
+  // Force-logout check: poll every 30s
+  useEffect(() => {
+    if (!currentUser || !api.isLive()) return;
+    const iv = setInterval(() => {
+      api.checkForceLogout(currentUser.email).then(res => {
+        const result = typeof res === 'string' ? JSON.parse(res) : res;
+        if (result.forceLogout) {
+          setCurrentUser(null);
+          try { localStorage.removeItem(SESSION_KEY); } catch {}
+          alert('You have been logged out by a supervisor.');
+        }
+      }).catch(() => {});
+    }, 30000);
+    return () => clearInterval(iv);
+  }, [currentUser]);
 
   // Change own password
   const changePassword = useCallback((currentPw, newPw) => {
@@ -145,10 +173,31 @@ export function AuthProvider({ children }) {
     return { success: true };
   }, []);
 
+  // Poll online agents every 30s (for supervisor/admin views)
+  useEffect(() => {
+    if (!currentUser || !api.isLive()) return;
+    const fetchOnline = () => {
+      api.getOnlineAgents().then(raw => {
+        const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(data)) setOnlineAgents(data);
+      }).catch(() => {});
+    };
+    fetchOnline();
+    const iv = setInterval(fetchOnline, 30000);
+    return () => clearInterval(iv);
+  }, [currentUser]);
+
+  const forceLogoutAgent = useCallback(async (email) => {
+    if (api.isLive()) {
+      await api.forceLogoutAgent(email);
+    }
+    return { success: true };
+  }, []);
+
   return (
     <AuthContext.Provider value={{
-      currentUser, users, isAdmin, isSupervisor,
-      login, logout, changePassword, resetUserPassword, addUser, removeUser,
+      currentUser, users, isAdmin, isSupervisor, onlineAgents,
+      login, logout, changePassword, resetUserPassword, addUser, removeUser, forceLogoutAgent,
     }}>
       {children}
     </AuthContext.Provider>

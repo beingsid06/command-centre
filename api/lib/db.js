@@ -42,6 +42,32 @@ export function detectCategory(subject) {
   return 'General';
 }
 
+export async function postFreshdeskNote(ticketId, noteBody) {
+  try {
+    const domain = process.env.FRESHDESK_DOMAIN;
+    const apiKey = process.env.FRESHDESK_API_KEY;
+    if (!domain || !apiKey) return;
+
+    const digits = String(ticketId).replace(/\D/g, '');
+    if (!digits) return;
+
+    const url = `https://${domain}.freshdesk.com/api/v2/tickets/${digits}/notes`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + Buffer.from(apiKey + ':X').toString('base64'),
+      },
+      body: JSON.stringify({ body: noteBody, private: true }),
+    });
+    if (!resp.ok) {
+      console.error(`Freshdesk note failed (ticket ${digits}): HTTP ${resp.status}`);
+    }
+  } catch (ex) {
+    console.error('postFreshdeskNote error:', ex.message);
+  }
+}
+
 export function jsonResp(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,

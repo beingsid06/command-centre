@@ -57,6 +57,14 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: `${created} users created` });
       }
 
+      case 'force-logout': {
+        const { email } = body;
+        if (!email) return res.status(400).json({ error: 'email required' });
+        const { error } = await db.from('users').update({ force_logout_at: new Date().toISOString() }).eq('email', email);
+        if (error) return res.status(500).json({ error: error.message });
+        return res.status(200).json({ success: true });
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }

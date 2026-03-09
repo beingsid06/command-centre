@@ -1224,6 +1224,39 @@ body {
   margin-bottom: 12px;
 }
 
+/* Agent Presence Grid */
+.agent-presence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.presence-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--scapia-gray-200);
+  background: var(--scapia-white);
+  transition: box-shadow 0.15s;
+}
+.presence-card:hover { box-shadow: var(--shadow-sm); }
+.presence-online { border-left: 3px solid var(--scapia-green); }
+.presence-offline { border-left: 3px solid var(--scapia-gray-300); opacity: 0.7; }
+.presence-indicator { flex-shrink: 0; }
+.presence-icon-online { color: var(--scapia-green); }
+.presence-icon-offline { color: var(--scapia-gray-400); }
+.presence-info { flex: 1; min-width: 0; }
+.presence-name { font-size: 13px; font-weight: 600; color: var(--scapia-gray-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.presence-role { font-size: 11px; color: var(--scapia-gray-500); }
+.presence-lastseen { font-size: 10px; color: var(--scapia-gray-400); margin-top: 2px; }
+.btn-danger {
+  background: var(--scapia-red);
+  color: white;
+  border: none;
+}
+.btn-danger:hover { background: #B91C1C; }
+
 /* ── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .monitoring-grid { grid-template-columns: 1fr; }

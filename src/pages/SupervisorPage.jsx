@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Shield, AlertTriangle, Lock, UserCheck, Users, CheckSquare, ArrowLeftRight, Undo2 } from 'lucide-react';
+import { Shield, AlertTriangle, Lock, UserCheck, Users, CheckSquare, ArrowLeftRight, Undo2, Wifi, WifiOff, LogOut } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
 import { useStore } from '../hooks/useCallbackStore';
 import { useAuth } from '../hooks/useAuth';
@@ -8,7 +8,7 @@ import ForceReleaseModal from '../components/ForceReleaseModal';
 
 export default function SupervisorPage() {
   const { state, forceRelease, bulkForceRelease, assignCallback, bulkAssign, unassignCallback, reassignCallback, getStats } = useStore();
-  const { users } = useAuth();
+  const { users, onlineAgents, forceLogoutAgent } = useAuth();
   const stats = getStats();
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -148,6 +148,50 @@ export default function SupervisorPage() {
         <div className="stat-card stat-success">
           <div className="stat-value">{stats.slaRate}%</div>
           <div className="stat-label">SLA Rate</div>
+        </div>
+      </div>
+
+      {/* Agent Presence */}
+      <div className="supervisor-section">
+        <div className="section-title">
+          <Wifi size={16} /> Agent Presence
+        </div>
+        <div className="agent-presence-grid">
+          {users.filter(u => u.active && (u.role === 'Agent' || u.role === 'Supervisor')).map(u => {
+            const isOnline = onlineAgents.some(a =>
+              (a.email || '').toLowerCase() === u.email.toLowerCase()
+            );
+            const onlineData = onlineAgents.find(a =>
+              (a.email || '').toLowerCase() === u.email.toLowerCase()
+            );
+            const lastSeen = onlineData?.last_active || onlineData?.lastActive;
+            return (
+              <div key={u.email} className={`presence-card ${isOnline ? 'presence-online' : 'presence-offline'}`}>
+                <div className="presence-indicator">
+                  {isOnline ? <Wifi size={14} className="presence-icon-online" /> : <WifiOff size={14} className="presence-icon-offline" />}
+                </div>
+                <div className="presence-info">
+                  <div className="presence-name">{u.name}</div>
+                  <div className="presence-role">{u.role}</div>
+                  {lastSeen && !isOnline && (
+                    <div className="presence-lastseen">Last: {format(new Date(lastSeen), 'MMM d, h:mm a')}</div>
+                  )}
+                </div>
+                {isOnline && (
+                  <button
+                    className="btn btn-xs btn-danger"
+                    onClick={() => { if (confirm(`Force logout ${u.name}?`)) forceLogoutAgent(u.email); }}
+                    title="Force logout this agent"
+                  >
+                    <LogOut size={11} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          {users.filter(u => u.active && (u.role === 'Agent' || u.role === 'Supervisor')).length === 0 && (
+            <div className="section-empty">No agents configured.</div>
+          )}
         </div>
       </div>
 

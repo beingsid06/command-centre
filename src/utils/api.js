@@ -93,6 +93,29 @@ export const api = {
   setupPeriodicTrigger: () => apiCall('notifications', { action: 'setup-trigger' }),
   removePeriodicTrigger: () => apiCall('notifications', { action: 'remove-trigger' }),
   triggerSummaryNow: () => apiCall('notifications', { action: 'trigger-summary' }),
+
+  // Agent presence — direct Supabase for speed
+  heartbeat: async (email) => {
+    if (!supabase) return;
+    await supabase.from('users').update({ last_active: new Date().toISOString() }).eq('email', email);
+  },
+  getOnlineAgents: async () => {
+    if (!supabase) return [];
+    const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString(); // 2 min threshold
+    const { data, error } = await supabase.from('users').select('name, email, role, last_active, force_logout_at').gt('last_active', cutoff);
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+  forceLogoutAgent: (email) => apiCall('users', { action: 'force-logout', email }),
+  checkForceLogout: async (email) => {
+    if (!supabase) return { forceLogout: false };
+    const { data, error } = await supabase.from('users').select('force_logout_at, last_active').eq('email', email).single();
+    if (error || !data) return { forceLogout: false };
+    if (data.force_logout_at && (!data.last_active || new Date(data.force_logout_at) > new Date(data.last_active))) {
+      return { forceLogout: true };
+    }
+    return { forceLogout: false };
+  },
 };
 
 // Map snake_case DB rows to camelCase frontend format

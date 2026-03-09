@@ -482,6 +482,13 @@ Now copy these 3 values:
 
 > **Checkpoint:** If you see all 4 tables and the Admin user row, your database is ready! If you don't see any tables, go back to Step 2.2 and run the SQL script again.
 
+> **Upgrading from a previous version?** If your database was created before the agent presence feature was added, run this in the SQL Editor to add the new columns:
+> ```sql
+> ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMPTZ;
+> ALTER TABLE users ADD COLUMN IF NOT EXISTS force_logout_at TIMESTAMPTZ;
+> CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active);
+> ```
+
 ---
 ---
 
@@ -569,9 +576,19 @@ You need to add **8 variables**, one at a time. For each variable:
 - Value: `admin@scapia.cards`
   > This is the email address that will receive alert emails. You can add multiple emails separated by commas, like `admin@scapia.cards,manager@scapia.cards`
 
+**Variable 9 (Optional -- for email alerts):**
+- Key: `RESEND_API_KEY`
+- Value: Your Resend API key (get one free at https://resend.com)
+  > This enables the app to send email summary alerts. If you skip this, email alerts won't work but everything else will. Slack alerts still work without this.
+
+**Variable 10 (Optional -- for email alerts):**
+- Key: `EMAIL_FROM`
+- Value: `Scapia Command Centre <noreply@yourdomain.com>`
+  > The "from" address for email alerts. You need to verify this domain in Resend first. If skipped, defaults to `noreply@scapia.cards`.
+
 ---
 
-> **Double-check:** Make sure you've added all 8 variables. Look at the list below the input boxes -- you should see 8 entries. Pay special attention to:
+> **Double-check:** Make sure you've added at least 8 variables (10 if you want email alerts). Look at the list below the input boxes. Pay special attention to:
 > - Variable 1 and 3 should have the **same** URL value
 > - Variable 2 (service_role) and Variable 4 (anon) should have **different** key values
 > - No extra spaces before or after any value

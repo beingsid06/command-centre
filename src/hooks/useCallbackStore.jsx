@@ -286,182 +286,126 @@ export function StoreProvider({ children }) {
   }, [state.toasts]);
 
   const pickUp = useCallback(async (id, agentName) => {
+    dispatch({ type: 'PICK_UP', id, agent: agentName });
+    dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} picked up` } });
     if (liveMode.current) {
-      try {
-        await api.pickUp(id, agentName);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} picked up` } });
-      } catch (err) {
+      api.pickUp(id, agentName).catch(err => {
+        refreshData();
         dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: `Pick up failed: ${err.message}` } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'PICK_UP', id, agent: agentName });
-      dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} picked up` } });
+      });
     }
   }, []);
 
   const complete = useCallback(async (id, notes, followUpRequired, followUpAt) => {
     if (followUpRequired && followUpAt) {
+      dispatch({ type: 'SCHEDULE_FOLLOWUP', id, followUpAt, notes });
+      dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `Follow-up scheduled — new callback created` } });
       if (liveMode.current) {
-        try {
-          await api.scheduleFollowUp(id, followUpAt, notes);
-          const raw = await api.getCallbacks('all');
-          dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-          dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `Follow-up scheduled — new callback created` } });
-        } catch (err) {
+        api.scheduleFollowUp(id, followUpAt, notes).then(() => {
+          refreshData();
+        }).catch(err => {
+          refreshData();
           dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-          throw err;
-        }
-      } else {
-        dispatch({ type: 'SCHEDULE_FOLLOWUP', id, followUpAt, notes });
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `Follow-up scheduled — new callback created` } });
+        });
       }
       return;
     }
+    dispatch({ type: 'COMPLETE', id, notes, followUpRequired: false });
+    dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} completed — note posted to Freshdesk` } });
     if (liveMode.current) {
-      try {
-        await api.complete(id, notes, false);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} completed — note posted to Freshdesk` } });
-      } catch (err) {
+      api.complete(id, notes, false).catch(err => {
+        refreshData();
         dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'COMPLETE', id, notes, followUpRequired: false });
-      dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} completed — note posted to Freshdesk` } });
+      });
     }
   }, []);
 
   const forceRelease = useCallback(async (id, notes) => {
-    if (liveMode.current) {
-      try {
-        await api.forceRelease(id, notes);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'FORCE_RELEASE', id, notes });
-    }
+    dispatch({ type: 'FORCE_RELEASE', id, notes });
     dispatch({ type: 'ADD_TOAST', toast: { type: 'warning', message: `${id} force-released` } });
+    if (liveMode.current) {
+      api.forceRelease(id, notes).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const bulkForceRelease = useCallback(async (ids, notes) => {
-    if (liveMode.current) {
-      try {
-        await api.bulkForceRelease(ids, notes);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      ids.forEach(id => dispatch({ type: 'FORCE_RELEASE', id, notes }));
-    }
+    ids.forEach(id => dispatch({ type: 'FORCE_RELEASE', id, notes }));
     dispatch({ type: 'ADD_TOAST', toast: { type: 'warning', message: `${ids.length} callbacks force-released` } });
+    if (liveMode.current) {
+      api.bulkForceRelease(ids, notes).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const extendCallback = useCallback(async (id) => {
-    if (liveMode.current) {
-      try {
-        await api.extendCallback(id);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'EXTEND', id });
-    }
+    dispatch({ type: 'EXTEND', id });
     dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} timer extended` } });
+    if (liveMode.current) {
+      api.extendCallback(id).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const assignCallback = useCallback(async (id, agent) => {
-    if (liveMode.current) {
-      try {
-        await api.assignCallback(id, agent);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'ASSIGN', id, agent });
-    }
+    dispatch({ type: 'ASSIGN', id, agent });
     dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} assigned to ${agent}` } });
+    if (liveMode.current) {
+      api.assignCallback(id, agent).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const bulkAssign = useCallback(async (ids, agent) => {
-    if (liveMode.current) {
-      try {
-        await api.bulkAssign(ids, agent);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'BULK_ASSIGN', ids, agent });
-    }
+    dispatch({ type: 'BULK_ASSIGN', ids, agent });
     dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${ids.length} callbacks assigned to ${agent}` } });
+    if (liveMode.current) {
+      api.bulkAssign(ids, agent).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const unassignCallback = useCallback(async (id) => {
-    if (liveMode.current) {
-      try {
-        await api.unassignCallback(id);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'UNASSIGN', id });
-    }
+    dispatch({ type: 'UNASSIGN', id });
     dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} unassigned and returned to queue` } });
+    if (liveMode.current) {
+      api.unassignCallback(id).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const reassignCallback = useCallback(async (id, agent) => {
-    if (liveMode.current) {
-      try {
-        await api.reassignCallback(id, agent);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'REASSIGN', id, agent });
-    }
+    dispatch({ type: 'REASSIGN', id, agent });
     dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: `${id} reassigned to ${agent}` } });
+    if (liveMode.current) {
+      api.reassignCallback(id, agent).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const clearOld = useCallback(async (beforeDate) => {
-    if (liveMode.current) {
-      try {
-        await api.clearOldCallbacks(beforeDate);
-        const raw = await api.getCallbacks('all');
-        dispatch({ type: 'SET_CALLBACKS', callbacks: typeof raw === 'string' ? JSON.parse(raw) : raw });
-      } catch (err) {
-        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
-        throw err;
-      }
-    } else {
-      dispatch({ type: 'CLEAR_OLD', beforeDate });
-    }
+    dispatch({ type: 'CLEAR_OLD', beforeDate });
     dispatch({ type: 'ADD_TOAST', toast: { type: 'success', message: 'Old callbacks cleared successfully' } });
+    if (liveMode.current) {
+      api.clearOldCallbacks(beforeDate).catch(err => {
+        refreshData();
+        dispatch({ type: 'ADD_TOAST', toast: { type: 'error', message: err.message } });
+      });
+    }
   }, []);
 
   const refreshData = useCallback(async () => {

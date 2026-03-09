@@ -1,4 +1,4 @@
-import { db, addLog, getNextCallbackId, calcDeadline, detectCategory } from './lib/db.js';
+import { db, addLog, getNextCallbackId, calcDeadline, detectCategory, postFreshdeskNote } from './lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -32,6 +32,20 @@ export default async function handler(req, res) {
         const { error } = await db.from('callbacks').update({ status: 'completed', completed_at: now, notes: notes || '', follow_up_required: followUpRequired || false, follow_up_at: followUpAt || null }).eq('id', id);
         if (error) return res.status(500).json({ error: error.message });
         await addLog(id, 'completed', cb.assigned_agent, `${cb.assigned_agent} completed ${id}`);
+
+        // Post private note to Freshdesk
+        if (cb.ticket_id) {
+          const isFollowUp = followUpRequired === true || followUpRequired === 'true';
+          const noteHtml = `<b>Callback Summary</b><br>` +
+            `<b>Callback ID:</b> ${id}<br>` +
+            `<b>Agent:</b> ${cb.assigned_agent || 'Unknown'}<br>` +
+            `<b>Status:</b> Completed<br>` +
+            `<b>Notes:</b> ${notes || 'N/A'}<br>` +
+            `<b>Follow-up Needed:</b> ${isFollowUp ? 'Yes' : 'No'}` +
+            (isFollowUp && followUpAt ? `<br><b>Follow-up Date:</b> ${new Date(followUpAt).toLocaleString()}` : '');
+          postFreshdeskNote(cb.ticket_id, noteHtml);
+        }
+
         return res.status(200).json({ success: true });
       }
 
@@ -52,6 +66,20 @@ export default async function handler(req, res) {
         if (error) return res.status(500).json({ error: error.message });
         await addLog(id, 'completed', cb.assigned_agent || 'Agent', `${cb.assigned_agent || 'Agent'} completed ${id} (follow-up)`);
         await addLog(newId, 'created', '', `Follow-up callback from ${id}`);
+
+        // Post private note to Freshdesk
+        if (cb.ticket_id) {
+          const noteHtml = `<b>Callback Summary</b><br>` +
+            `<b>Callback ID:</b> ${id}<br>` +
+            `<b>Agent:</b> ${cb.assigned_agent || 'Unknown'}<br>` +
+            `<b>Status:</b> Completed (Follow-up)<br>` +
+            `<b>Notes:</b> ${notes || 'N/A'}<br>` +
+            `<b>Follow-up Needed:</b> Yes<br>` +
+            `<b>Follow-up Date:</b> ${new Date(followUpAt).toLocaleString()}<br>` +
+            `<b>New Callback ID:</b> ${newId}`;
+          postFreshdeskNote(cb.ticket_id, noteHtml);
+        }
+
         return res.status(200).json({ success: true, newId });
       }
 

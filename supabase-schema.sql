@@ -11,8 +11,12 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL DEFAULT 'Agent' CHECK (role IN ('Agent', 'Supervisor', 'Admin')),
   active BOOLEAN NOT NULL DEFAULT true,
   password TEXT NOT NULL DEFAULT 'Welcome@1234',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_active TIMESTAMPTZ,
+  force_logout_at TIMESTAMPTZ
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active);
 
 -- 2. Callbacks table
 CREATE TABLE IF NOT EXISTS callbacks (
@@ -109,3 +113,11 @@ SELECT
   SUM(force_release_count) AS total_force_releases,
   SUM(auto_release_count) AS total_auto_releases
 FROM callbacks;
+
+-- ============================================================
+-- MIGRATION: If you already have the database set up and need
+-- to add the new agent presence columns, run these two lines:
+-- ============================================================
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMPTZ;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS force_logout_at TIMESTAMPTZ;
+-- CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active);
